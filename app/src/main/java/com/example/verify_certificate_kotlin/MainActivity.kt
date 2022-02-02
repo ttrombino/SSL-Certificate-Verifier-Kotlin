@@ -33,48 +33,62 @@ class MainActivity : AppCompatActivity() {
         val xmlResult = findViewById<TextView>(R.id.textViewResult)
         val xmlMessage = findViewById<TextView>(R.id.textViewMessage)
         val xmlDomain = findViewById<TextView>(R.id.textViewDomain)
+
         xmlVerify.setOnClickListener(View.OnClickListener {
             val inputUrl = xmlUrl.text.toString()
             xmlMessage.text = ""
             xmlDomain.text = "Domain: $inputUrl"
-            var validOutput = ""
             try {
-                validOutput = MainActivity.Companion.getCertificates(inputUrl)
+                checkSslCertificate(inputUrl, xmlResult, xmlMessage)
             } catch (e: SSLHandshakeException) {
                 val errString = """
                     Error:
                     ${e.message}
                     """.trimIndent()
-                xmlResult.setTextColor(Color.RED)
-                xmlResult.text = "Invalid"
-                xmlMessage.text = errString
+                setInvalidCertificate(errString, xmlResult, xmlMessage)
             } catch (e: Exception) {
                 val errString = """
                     Error:
                     ${e.message}
                     """.trimIndent()
-                xmlResult.setTextColor(Color.RED)
-                xmlResult.text = "Invalid Domain"
-                xmlMessage.text = errString
-            }
-            if (validOutput !== "") {
-                xmlResult.setTextColor(Color.GREEN)
-                xmlResult.text = "Valid"
-                xmlMessage.text = validOutput
+                setInvalidDomain(errString, xmlResult, xmlMessage)
             }
         })
     }
 
-    companion object {
+    private companion object {
+        private fun checkSslCertificate(inputUrl: String, result: TextView, message: TextView): Unit {
+            var validOutput = ""
+            validOutput = getCertificates(inputUrl)
+            setValidStatus(validOutput, result, message)
+        }
+        private fun setValidStatus(validOutput: String, result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.GREEN)
+            result.text = "Valid"
+            message.text = validOutput
+        }
+
+        private fun setInvalidCertificate(err: String, result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.RED)
+            result.text = "Invalid"
+            message.text = err
+        }
+
+        private fun setInvalidDomain(err: String, result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.RED)
+            result.text = "Invalid Domain"
+            message.text = err
+        }
+
         /**
          * Returns a String representation of the given URL's Certificate Chain.
          * Throws an IOException if there are any connection errors.
          */
         @Throws(IOException::class)
-        private fun getCertificates(inputURL: String): String {
+        private fun getCertificates(inputUrl: String): String {
             val https = "https://"
             var formattedCerts = ""
-            val url = URL(https + inputURL)
+            val url = URL(https + inputUrl)
             var urlConnection: HttpsURLConnection? = null
             urlConnection = url.openConnection() as HttpsURLConnection
             formattedCerts = try {
@@ -95,13 +109,11 @@ class MainActivity : AppCompatActivity() {
         private fun formatCerts(certs: Array<Certificate>): String {
             val buildCerts = StringBuilder()
             buildCerts.append("Certificate Chain:\n\n")
-            var i = 0
-            while (i < certs.size) {
-                val cert = certs[i] as X509Certificate
+            certs.forEachIndexed { i, c->
+                val cert = c as X509Certificate
                 buildCerts.append(" ").append(i + 1).append(":\n")
                 buildCerts.append("   Issuer: ").append(cert.issuerDN.toString()).append("\n\n")
                 buildCerts.append("   Expires: ").append(cert.notAfter.toString()).append("\n\n\n")
-                i += 1
             }
             return buildCerts.toString()
         }

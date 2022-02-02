@@ -35,7 +35,6 @@
                 android:layout_height="wrap_content"
                 android:background="@color/purple_500"
                 android:text="@string/verify_ssl_certificate"
-                android:onClick="setOnClickListener"
                 android:layout_below="@id/editTextUrl"
                 android:layout_marginTop="25dp"
                 android:layout_centerHorizontal="true"
