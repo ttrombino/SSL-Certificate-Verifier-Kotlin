@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SSL/TSL Verifier</string>
+    <string name="verify_ssl_certificate">Verify SSL Certificate</string>
+    <string name="enter_domain">Enter Domain:</string>
+</resources>
