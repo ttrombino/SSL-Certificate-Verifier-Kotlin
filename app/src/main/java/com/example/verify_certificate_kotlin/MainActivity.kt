@@ -23,7 +23,8 @@ import kotlin.Throws
  * The Main and only Activity for an app which takes an input domain
  * and verifies its server's SSL certificates. In the event of an invalid certificate,
  * an error message is displayed along with the invalid status. If the certificate is
- * valid, the certificate chain is displayed along with the valid status.
+ * valid, the certificate chain containing the issuer and expiration date is displayed
+ * along with the valid status.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -41,22 +42,24 @@ class MainActivity : AppCompatActivity() {
         val xmlDomain = findViewById<TextView>(R.id.textViewDomain)
 
         xmlVerify.setOnClickListener(View.OnClickListener {
-            val domain = xmlUrl.text.toString()
-            setTextViewTxt(xmlMessage, "")
-            setTextViewTxt(xmlDomain, "Domain: $domain")
+            val domainName = xmlUrl.text.toString()
+            resetMessageAndDomain(xmlMessage, xmlDomain, domainName)
             try {
-                checkSslCertificate(domain, xmlResult, xmlMessage)
+                checkSslCertificate(domainName, xmlResult, xmlMessage)
             } catch (e: SSLHandshakeException) {
-                val errString = "Error\n${e.message}"
-                displayInvalidCertificate(errString, xmlResult, xmlMessage)
+                displayInvalidCertificate(e.message, xmlResult, xmlMessage)
             } catch (e: Exception) {
-                val errString = "Error\n${e.message}"
-                displayInvalidDomain(errString, xmlResult, xmlMessage)
+                displayInvalidDomain(e.message, xmlResult, xmlMessage)
             }
         })
     }
 
     private companion object {
+        private fun resetMessageAndDomain(message: TextView, domain: TextView,
+                                          domainName: String): Unit {
+            setTextViewTxt(message, "")
+            setTextViewTxt(domain, "Domain: $domainName")
+        }
         /** Establishes an https connection based on the given domain
          * and displays the certificates if any. If no connection is made
          * an IOException is passed up to the caller.
@@ -107,18 +110,18 @@ class MainActivity : AppCompatActivity() {
             setTextViewTxt(message, validOutput)
         }
 
-        private fun displayInvalidCertificate(err: String,
+        private fun displayInvalidCertificate(err: String?,
                                           result: TextView, message: TextView): Unit {
             result.setTextColor(Color.RED)
             setTextViewTxt(result, "Invalid")
-            setTextViewTxt(message, err)
+            setTextViewTxt(message, "Error:\n${err}")
         }
 
-        private fun displayInvalidDomain(err: String,
+        private fun displayInvalidDomain(err: String?,
                                      result: TextView, message: TextView): Unit {
             result.setTextColor(Color.RED)
             setTextViewTxt(result, "Invalid Domain")
-            setTextViewTxt(message, err)
+            setTextViewTxt(message, "Error:\n${err}")
         }
 
         private fun setTextViewTxt(tv: TextView, text: String): Unit {
