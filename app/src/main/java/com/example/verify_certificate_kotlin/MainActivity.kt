@@ -6,7 +6,6 @@ import android.widget.EditText
 import android.widget.TextView
 import android.os.StrictMode.ThreadPolicy
 import android.os.Bundle
-import com.example.verify_certificate_kotlin.R
 import android.os.StrictMode
 import android.view.View
 import android.widget.Button
@@ -20,8 +19,15 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLHandshakeException
 import kotlin.Throws
 
+/**
+ * The Main and only Activity for an app which takes an input domain
+ * and verifies its server's SSL certificates. In the event of an invalid certificate,
+ * an error message is displayed along with the invalid status. If the certificate is
+ * valid, the certificate chain is displayed along with the valid status.
+ */
 class MainActivity : AppCompatActivity() {
 
+    /* Set the thread policy to allow network access on the main thread */
     private val policy = ThreadPolicy.Builder().permitAll().build()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -35,71 +41,47 @@ class MainActivity : AppCompatActivity() {
         val xmlDomain = findViewById<TextView>(R.id.textViewDomain)
 
         xmlVerify.setOnClickListener(View.OnClickListener {
-            val inputUrl = xmlUrl.text.toString()
-            xmlMessage.text = ""
-            xmlDomain.text = "Domain: $inputUrl"
+            val domain = xmlUrl.text.toString()
+            setTextViewTxt(xmlMessage, "")
+            setTextViewTxt(xmlDomain, "Domain: $domain")
             try {
-                checkSslCertificate(inputUrl, xmlResult, xmlMessage)
+                checkSslCertificate(domain, xmlResult, xmlMessage)
             } catch (e: SSLHandshakeException) {
-                val errString = """
-                    Error:
-                    ${e.message}
-                    """.trimIndent()
-                setInvalidCertificate(errString, xmlResult, xmlMessage)
+                val errString = "Error\n${e.message}"
+                displayInvalidCertificate(errString, xmlResult, xmlMessage)
             } catch (e: Exception) {
-                val errString = """
-                    Error:
-                    ${e.message}
-                    """.trimIndent()
-                setInvalidDomain(errString, xmlResult, xmlMessage)
+                val errString = "Error\n${e.message}"
+                displayInvalidDomain(errString, xmlResult, xmlMessage)
             }
         })
     }
 
     private companion object {
-        private fun checkSslCertificate(inputUrl: String, result: TextView, message: TextView): Unit {
-            var validOutput = ""
-            validOutput = getCertificates(inputUrl)
-            setValidStatus(validOutput, result, message)
-        }
-        private fun setValidStatus(validOutput: String, result: TextView, message: TextView): Unit {
-            result.setTextColor(Color.GREEN)
-            result.text = "Valid"
-            message.text = validOutput
-        }
-
-        private fun setInvalidCertificate(err: String, result: TextView, message: TextView): Unit {
-            result.setTextColor(Color.RED)
-            result.text = "Invalid"
-            message.text = err
-        }
-
-        private fun setInvalidDomain(err: String, result: TextView, message: TextView): Unit {
-            result.setTextColor(Color.RED)
-            result.text = "Invalid Domain"
-            message.text = err
+        /** Establishes an https connection based on the given domain
+         * and displays the certificates if any. If no connection is made
+         * an IOException is passed up to the caller.
+         */
+        private fun checkSslCertificate(domain: String,
+                                        result: TextView, message: TextView): Unit {
+            val httpsConn = establishConnection(domain)
+            val certChain = formatCerts(httpsConn.serverCertificates)
+            displayValidStatus(certChain, result, message)
         }
 
         /**
-         * Returns a String representation of the given URL's Certificate Chain.
-         * Throws an IOException if there are any connection errors.
+         * Returns an HttpsURLConnection instance or throws an IOException
+         * if a connection cannot be made.
          */
         @Throws(IOException::class)
-        private fun getCertificates(inputUrl: String): String {
-            val https = "https://"
-            var formattedCerts = ""
-            val url = URL(https + inputUrl)
-            var urlConnection: HttpsURLConnection? = null
-            urlConnection = url.openConnection() as HttpsURLConnection
-            formattedCerts = try {
-                urlConnection.responseCode
-                formatCerts(
-                    urlConnection.serverCertificates
-                )
-            } finally {
-                urlConnection.disconnect()
-            }
-            return formattedCerts
+        private fun establishConnection(domain: String): HttpsURLConnection {
+            val url = URL("https://$domain")
+            val httpConnection: HttpsURLConnection?
+            httpConnection = url.openConnection() as HttpsURLConnection
+            /*Get response code to ensure connection has been made*/
+            httpConnection.responseCode
+            httpConnection.connectTimeout = 5000
+
+            return httpConnection
         }
 
         /**
@@ -117,7 +99,30 @@ class MainActivity : AppCompatActivity() {
             }
             return buildCerts.toString()
         }
+
+        private fun displayValidStatus(validOutput: String,
+                                       result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.GREEN)
+            setTextViewTxt(result, "Valid")
+            setTextViewTxt(message, validOutput)
+        }
+
+        private fun displayInvalidCertificate(err: String,
+                                          result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.RED)
+            setTextViewTxt(result, "Invalid")
+            setTextViewTxt(message, err)
+        }
+
+        private fun displayInvalidDomain(err: String,
+                                     result: TextView, message: TextView): Unit {
+            result.setTextColor(Color.RED)
+            setTextViewTxt(result, "Invalid Domain")
+            setTextViewTxt(message, err)
+        }
+
+        private fun setTextViewTxt(tv: TextView, text: String): Unit {
+            tv.text = text
+        }
     }
-
-
 }
