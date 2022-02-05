@@ -107,6 +107,10 @@ class MainActivity : AppCompatActivity() {
             SSLHandshakeException::class
         )
         private fun checkForRevocation(certs: Array<Certificate>, res: Resources) {
+            if (certs.size == 1) {
+                val err = "Incomplete Chain"
+                throw SSLHandshakeException(err)
+            }
             val inStream: InputStream = res.openRawResource(R.raw.rmixedsha)
             val cf = CertificateFactory.getInstance("X.509")
             val crl = cf.generateCRL(inStream) as X509CRL
