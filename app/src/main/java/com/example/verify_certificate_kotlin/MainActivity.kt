@@ -1,20 +1,25 @@
 package com.example.verify_certificate_kotlin
 
+import android.content.ContextWrapper
+import android.content.res.Resources
 import android.graphics.Color
 import androidx.appcompat.app.AppCompatActivity
 import android.widget.EditText
 import android.widget.TextView
 import android.os.StrictMode.ThreadPolicy
 import android.os.Bundle
+import android.os.Environment
 import android.os.StrictMode
 import android.view.View
 import android.widget.Button
+import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
+import java.io.InputStream
 import java.lang.Exception
 import java.lang.StringBuilder
 import java.net.URL
-import java.security.cert.Certificate
-import java.security.cert.X509Certificate
+import java.security.cert.*
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLHandshakeException
 import kotlin.Throws
@@ -43,9 +48,10 @@ class MainActivity : AppCompatActivity() {
 
         xmlVerify.setOnClickListener(View.OnClickListener {
             val domainName = xmlUrl.text.toString()
+            val res = resources
             resetMessageAndDomain(xmlMessage, xmlDomain, domainName)
             try {
-                checkSslCertificate(domainName, xmlResult, xmlMessage)
+                checkSslCertificate(domainName, xmlResult, xmlMessage, res)
             } catch (e: SSLHandshakeException) {
                 displayInvalidCertificate(e.message, xmlResult, xmlMessage)
             } catch (e: Exception) {
@@ -65,8 +71,10 @@ class MainActivity : AppCompatActivity() {
          * an IOException is passed up to the caller.
          */
         private fun checkSslCertificate(domain: String,
-                                        result: TextView, message: TextView): Unit {
+                                        result: TextView, message: TextView, res: Resources): Unit {
             val httpsConn = establishConnection(domain)
+            val certificates = httpsConn.serverCertificates
+            checkForRevocation(certificates, res)
             val certChain = formatCerts(httpsConn.serverCertificates)
             displayValidStatus(certChain, result, message)
         }
@@ -85,6 +93,31 @@ class MainActivity : AppCompatActivity() {
             httpConnection.connectTimeout = 5000
 
             return httpConnection
+        }
+
+
+        /**
+         * Takes an array of Certificates and checks if any
+         * are present on the saved Certificate Revocation List.
+         * If so, an SSLHandshake Exception is thrown up to the caller.
+         */
+        @Throws(
+            CertificateException::class,
+            CRLException::class,
+            SSLHandshakeException::class
+        )
+        private fun checkForRevocation(certs: Array<Certificate>, res: Resources) {
+            val inStream: InputStream = res.openRawResource(R.raw.rmixedsha)
+            val cf = CertificateFactory.getInstance("X.509")
+            val crl = cf.generateCRL(inStream) as X509CRL
+            for (cert in certs) {
+                if (crl.isRevoked(cert)) {
+                    val c = cert as X509Certificate
+                    val issuer = c.issuerDN.toString()
+                    val err = "Certificate Revoked\nIssuer: $issuer"
+                    throw SSLHandshakeException(err)
+                }
+            }
         }
 
         /**
