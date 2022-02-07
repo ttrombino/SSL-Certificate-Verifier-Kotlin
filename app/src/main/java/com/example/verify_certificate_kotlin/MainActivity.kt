@@ -42,9 +42,10 @@ class MainActivity : AppCompatActivity() {
         StrictMode.setThreadPolicy(policy)
         val xmlUrl = findViewById<EditText>(R.id.editTextUrl)
         val xmlVerify = findViewById<Button>(R.id.buttonVerify)
+        val xmlDomain = findViewById<TextView>(R.id.textViewDomain)
         val xmlResult = findViewById<TextView>(R.id.textViewResult)
         val xmlMessage = findViewById<TextView>(R.id.textViewMessage)
-        val xmlDomain = findViewById<TextView>(R.id.textViewDomain)
+
 
         xmlVerify.setOnClickListener(View.OnClickListener {
             val domainName = xmlUrl.text.toString()
