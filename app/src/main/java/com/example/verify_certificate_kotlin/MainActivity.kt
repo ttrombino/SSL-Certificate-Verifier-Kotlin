@@ -60,7 +60,7 @@ class MainActivity : AppCompatActivity() {
         })
     }
 
-    private companion object {
+    companion object {
         private fun resetMessageAndDomain(message: TextView, domain: TextView,
                                           domainName: String): Unit {
             setTextViewTxt(message, "")
