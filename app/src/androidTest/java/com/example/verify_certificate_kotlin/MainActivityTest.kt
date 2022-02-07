@@ -147,6 +147,48 @@ class MainActivityTest {
         onView(withId(R.id.textViewResult)).check(matches(withText(INVALID)))
     }
 
+    @Test
+    fun testInvalidNoCommonName() {
+        onView(withId(R.id.editTextUrl))
+            .perform(typeText("no-common-name.badssl.com"), closeSoftKeyboard())
+
+        onView(withId(R.id.buttonVerify)).perform(click())
+
+        onView(withId(R.id.textViewResult)).check(matches(withText(INVALID)))
+    }
+
+    @Test
+    fun testInvalidNoSubject() {
+        onView(withId(R.id.editTextUrl))
+            .perform(typeText("no-subject.badssl.com"), closeSoftKeyboard())
+
+        onView(withId(R.id.buttonVerify)).perform(click())
+
+        onView(withId(R.id.textViewResult)).check(matches(withText(INVALID)))
+    }
+
+    @Test
+    fun testInvalidIncompleteChain() {
+        onView(withId(R.id.editTextUrl))
+            .perform(typeText("incomplete-chain.badssl.com"), closeSoftKeyboard())
+
+        onView(withId(R.id.buttonVerify)).perform(click())
+
+        onView(withId(R.id.textViewResult)).check(matches(withText(INVALID)))
+    }
+
+    @Test
+    fun testInvalidReversedChain() {
+        onView(withId(R.id.editTextUrl))
+            .perform(typeText("reversed-chain.badssl.com"), closeSoftKeyboard())
+
+        onView(withId(R.id.buttonVerify)).perform(click())
+
+        onView(withId(R.id.textViewResult)).check(matches(withText(INVALID)))
+    }
+
+
+
     companion object {
         val INVALID_DOMAIN = "Invalid Domain"
         val INVALID = "Invalid"
