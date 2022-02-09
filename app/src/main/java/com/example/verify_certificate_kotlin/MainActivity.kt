@@ -76,8 +76,9 @@ class MainActivity : AppCompatActivity() {
             val httpsConn = establishConnection(domain)
             val certificates = httpsConn.serverCertificates
             checkForRevocation(certificates, res)
-            val certChain = formatCerts(httpsConn.serverCertificates)
+            val certChain = formatCerts(certificates)
             displayValidStatus(certChain, result, message)
+            httpsConn.disconnect()
         }
 
         /**
@@ -108,10 +109,6 @@ class MainActivity : AppCompatActivity() {
             SSLHandshakeException::class
         )
         private fun checkForRevocation(certs: Array<Certificate>, res: Resources) {
-            if (certs.size == 1) {
-                val err = "Incomplete Chain"
-                throw SSLHandshakeException(err)
-            }
             val inStream: InputStream = res.openRawResource(R.raw.rmixedsha)
             val cf = CertificateFactory.getInstance("X.509")
             val crl = cf.generateCRL(inStream) as X509CRL
@@ -120,9 +117,11 @@ class MainActivity : AppCompatActivity() {
                     val c = cert as X509Certificate
                     val issuer = c.issuerDN.toString()
                     val err = "Certificate Revoked\nIssuer: $issuer"
+                    inStream.close()
                     throw SSLHandshakeException(err)
                 }
             }
+            inStream.close()
         }
 
         /**
